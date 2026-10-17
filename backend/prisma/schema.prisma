@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  cart         Cart?
+  orders       Order[]
+
+  @@index([email])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  priceCents  Int
+  imageUrl    String?
+  category    String?
+  stock       Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([isActive])
+  @@index([category])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     OrderStatus @default(PENDING)
+  totalCents Int
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  // Kept nullable so historical orders survive product deletion.
+  productId          String?
+  // Snapshot of the product at purchase time.
+  productName        String
+  productDescription String?
+  productImageUrl    String?
+  unitPriceCents     Int
+  quantity           Int
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
