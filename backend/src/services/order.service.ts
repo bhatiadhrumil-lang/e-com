@@ -108,6 +108,11 @@ export async function createOrder(userId: string): Promise<OrderResponse> {
     await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return created;
+  }, {
+    // Remote Postgres (Supabase pooler) has higher per-query latency than
+    // localhost; give the interactive transaction headroom beyond the 5s default.
+    timeout: 30_000,
+    maxWait: 10_000,
   });
 
   return shapeOrder(order);

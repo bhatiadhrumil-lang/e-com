@@ -305,6 +305,7 @@ yet part of the repository (planned as a later phase with the CI pipeline).
 | Stock too low to test checkout | `cd backend && npm run restock` resets demo stock levels. |
 | Tests fail with migration errors | The global test setup applies migrations to `ecom_test`; ensure Docker Postgres is running first. |
 | Port 5432 conflict | Another Postgres is using the port — stop it or remap in `database/docker-compose.yml`. |
+| Checkout (`POST /api/orders`) returns `P2028` / "Transaction already closed" | The interactive transaction exceeded its 5s default. Against a remote database (e.g. Supabase pooler) per-query latency is far higher than localhost, so `order.service.ts` raises `timeout`/`maxWait` on that `$transaction`. If you see this on a new slow connection, raise those values. |
 
 ## 14. Security notes
 
